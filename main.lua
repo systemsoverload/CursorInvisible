@@ -1,78 +1,56 @@
-require('lib/middleclass/middleclass')
-local Map = require "map"
+MOAISim.openWindow ( "test", 1024, 768 )
 
---Globals
-cos30deg = (math.cos(30 * (math.pi/180)))
+local viewport = MOAIViewport.new ()
+viewport:setSize ( 1024, 768 )
+viewport:setScale ( 1024, 768 )
 
-local font = MOAIFont.new()
-font:loadFromTTF('assets/arialbd.ttf',"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",120,72)
-
-local screen_width = MOAIEnvironment.horizontalResolution
-local screen_height = MOAIEnvironment.verticalResolution
-
-if screen_width == nil then screen_width = 960 end
-if screen_height == nil then screen_height = 640 end
-
-MOAISim.openWindow("Wizard Soldier v0.01",screen_width,screen_height)
-
-local map_viewport = MOAIViewport.new()
-map_viewport:setSize(screen_width,screen_height)
-map_viewport:setScale(screen_width,screen_height)
-
-local tableau_viewport = MOAIViewport.new()
-tableau_viewport:setSize(screen_width,screen_height)
-tableau_viewport:setScale(screen_width,screen_height)
-
-local map_layer = MOAILayer2D.new()
-map_layer:setViewport(map_viewport)
-
-local tableauLayer = MOAILayer2D.new()
-tableauLayer:setViewport(tableau_viewport)
+local layer = MOAILayer2D.new ()
+layer:setViewport ( viewport )
 
 local layers = {}
-table.insert(layers, map_layer)
-table.insert(layers, tableauLayer)
-
+table.insert(layers, layer)
 MOAIRenderMgr.setRenderTable(layers)
 
-GameMap = Map:new(5,"wedge",map_layer)
+function onDraw ( index, xOff, yOff, xFlip, yFlip )
+	MOAIGfxDevice.setPenColor(1, 0.64, 0, 1)
+	MOAIDraw.fillCircle(-150,-150,50, 50)
+end
 
-local tableQuad = MOAIGfxQuad2D.new()
-tableQuad:setTexture ( 'assets/images/wood.png' ) -- load an image to use as the quad’s texture
-tableQuad:setRect ( 0, 0, 960, 200 ) -- set the world space dimensions of the quad
-tableSprite = MOAIProp2D.new ()
-tableSprite:setDeck ( tableQuad )
-tableSprite:setLoc( (screen_width /2 ) * -1, -320)
-tableauLayer:insertProp(tableSprite)
+local scriptDeck = MOAIScriptDeck.new ()
+scriptDeck:setRect (-150,-150,50,-50)
+scriptDeck:setDrawCallback ( onDraw )
 
-map_viewport.offsetX = 0
-map_viewport.offsetY = 0
-map_viewport.scaleFactor = 1
+local prop = MOAIProp2D.new ()
+prop:setDeck ( scriptDeck )
+layer:insertProp ( prop )
 
-MOAIInputMgr.device.keyboard:setCallback(
-    function(key,down)
-        if down==true then
-        	if string.char(tostring(key)) == 'w' then
-        		map_viewport.offsetY = map_viewport.offsetY + 0.2
-        		map_viewport:setOffset(map_viewport.offsetX,map_viewport.offsetY)
-        	elseif string.char(tostring(key)) == 'a' then
-        		map_viewport.offsetX = map_viewport.offsetX - 0.2
-        		map_viewport:setOffset(map_viewport.offsetX,map_viewport.offsetY)
-        	elseif string.char(tostring(key)) == 's' then
-        		map_viewport.offsetY = map_viewport.offsetY - 0.2
-        		map_viewport:setOffset(map_viewport.offsetX,map_viewport.offsetY)
-        	elseif string.char(tostring(key)) == 'd' then
-        		map_viewport.offsetX = map_viewport.offsetX + 0.2
-        		map_viewport:setOffset(map_viewport.offsetX,map_viewport.offsetY)
-	        elseif key == 61 then -- 'plus' key
-                map_viewport.scaleFactor = map_viewport.scaleFactor - 0.1
-	        	map_viewport:setScale(screen_width * map_viewport.scaleFactor,screen_height * map_viewport.scaleFactor)
-            elseif key == 45 then -- 'minus' key
-                map_viewport.scaleFactor = map_viewport.scaleFactor + 0.1
-                map_viewport:setScale(screen_width * map_viewport.scaleFactor,screen_height * map_viewport.scaleFactor)
-	        elseif key == 27 then -- 'escape' key
-                os.exit()
-            end
-        end
-    end
-)
+function drawBhole ( x,y )
+	MOAIGfxDevice.setPenColor(1, 1, 1, 1)
+	MOAIDraw.fillCircle(x,y,15, 50)
+end
+
+function handleMouse( down )
+	if down then
+
+		local x,y = MOAIInputMgr.device.pointer:getLoc()
+		print("mouse " .. x .. " " .. y )
+
+		local bholeDeck = MOAIScriptDeck.new ()
+		bholeDeck:setRect (x, y, x + 10, y + 10)
+		bholeDeck:setDrawCallback ( drawBhole )
+
+		local bholeProp = MOAIProp2D.new ()
+		bholeProp:setDeck ( bholeDeck )
+		layer:insertProp ( bholeProp )
+	end
+end
+MOAIInputMgr.device.mouseLeft:setCallback(handleMouse)
+
+function handleKeyboard(key,down)
+	if down==true then
+		if key == 27 then -- 'escape' key
+			os.exit()
+		end
+	end
+end
+MOAIInputMgr.device.keyboard:setCallback(handleKeyboard)
