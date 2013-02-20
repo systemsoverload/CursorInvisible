@@ -1,0 +1,11 @@
+{
+  // Required
+	"name": "Cursor Invisible"
+	,"version": "1.0"
+	,"manifest_version": 2
+	,"app": {
+		"launch": {
+			"local_path": "moai.html"
+		}
+	}
+}
