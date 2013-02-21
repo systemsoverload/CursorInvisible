@@ -1,11 +1,12 @@
 TARGET_SPAWN_DELAY = 5
+MAX_TARGETS = 10
 
 spawnCounter = TARGET_SPAWN_DELAY
 alive = true
 score = 0
 
-windowHeight = 1024
-windowWidth = 768
+windowHeight = 960
+windowWidth = 640
 MOAISim.openWindow ( "test", windowHeight, windowWidth )
 
 viewport = MOAIViewport.new ()
@@ -37,7 +38,7 @@ font:loadFromTTF ("assets/arialbd.ttf", "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLM
 gameScoreText = MOAITextBox.new()
 gameScoreText:setFont( font )
 gameScoreText:setRect( -160, -80, 160, 80 )
-gameScoreText:setLoc( 480, 300 )
+gameScoreText:setLoc( ( windowHeight / 2 ) - 75, ( windowWidth / 2 ) - 75 )
 gameScoreText:setAlignment( MOAITextBox.CENTER_JUSTIFY )
 gameScoreText:setYFlip( true )
 gameScoreText:setString( tostring(score) )
@@ -73,8 +74,8 @@ function targetState ( prop, x, y )
 		prop.state = targetState
 		layer:insertProp ( prop )
 	end
-
-	targets[prop] = true
+	table.insert(targets,prop)
+	-- targets[prop] = true
 
 	function prop:finish ()
 		--Placeholder
@@ -120,7 +121,10 @@ MOAIInputMgr.device.keyboard:setCallback(handleKeyboard)
 function main ()
 	--Main game loop
 	while alive == true do
-
+		if( #targets > MAX_TARGETS ) then
+			alive = false
+			coroutine.yield()
+		end
 		--Generate new randomly placed target
 		setState (
 			MOAIProp2D.new()
@@ -136,9 +140,9 @@ function main ()
 		)
 
 		--Throttle thread so you dont create a million targets
-		for i = 1, 90 do
+		for i = 1, 15 do
 			spawnCounter = spawnCounter + 1
-			coroutine.yield ()
+			coroutine.yield()
 		end
 	end
 
