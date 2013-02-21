@@ -96,22 +96,37 @@ function targetHitState( prop )
 
 end
 
+function handleClickOrTouch( xin, yin )
+	local x,y = layer:wndToWorld( xin, yin )
+	local partition = layer:getPartition()
+	local pickedProp = partition:propForPoint(x, y)
+	setState( pickedProp, targetHitState )
+
+	--If the mouse click missed all props, game over
+	if pickedProp == nil then
+		alive = false
+	end
+end
+
 function handleMouse( down )
 	if down then
 		local x,y = MOAIInputMgr.device.pointer:getLoc()
-		x, y = layer:wndToWorld ( x, y )
-
-		local partition = layer:getPartition()
-		local pickedProp = partition:propForPoint(x, y)
-		setState( pickedProp, targetHitState )
-
-		--If the mouse click missed all props, game over
-		if pickedProp == nil then
-			alive = false
-		end
+		handleClickOrTouch( x, y )
 	end
 end
-MOAIInputMgr.device.mouseLeft:setCallback(handleMouse)
+
+function handleTouch( eventType, idx, x, y, tapCount )
+	if (tapCount == 1) then
+		handleClickOrTouch( x, y )
+	end
+end
+
+if MOAIInputMgr.device.pointer then
+	MOAIInputMgr.device.mouseLeft:setCallback(handleMouse)
+end
+if MOAIInputMgr.device.touch then
+	MOAIInputMgr.device.touch:setCallback(handleTouch)
+end
 
 function handleKeyboard(key,down)
 	if down==true then
