@@ -1,4 +1,5 @@
 TARGET_SPAWN_DELAY = 5
+TARGETS_ON_SCREEN = 0
 MAX_TARGETS = 10
 
 spawnCounter = TARGET_SPAWN_DELAY
@@ -75,6 +76,7 @@ function targetState ( prop, x, y )
 		layer:insertProp ( prop )
 	end
 	table.insert(targets,prop)
+	TARGETS_ON_SCREEN = TARGETS_ON_SCREEN + 1
 	-- targets[prop] = true
 
 	function prop:finish ()
@@ -89,7 +91,9 @@ end
 function targetHitState( prop )
 	layer:removeProp(prop)
 	score = score + 1
+	TARGETS_ON_SCREEN = TARGETS_ON_SCREEN - 1
 	gameScoreText:setString( tostring(score) )
+
 end
 
 function handleMouse( down )
@@ -121,7 +125,7 @@ MOAIInputMgr.device.keyboard:setCallback(handleKeyboard)
 function main ()
 	--Main game loop
 	while alive == true do
-		if( #targets > MAX_TARGETS ) then
+		if( TARGETS_ON_SCREEN > MAX_TARGETS ) then
 			alive = false
 			coroutine.yield()
 		end
@@ -140,7 +144,7 @@ function main ()
 		)
 
 		--Throttle thread so you dont create a million targets
-		for i = 1, 15 do
+		for i = 1, 35 do
 			spawnCounter = spawnCounter + 1
 			coroutine.yield()
 		end
