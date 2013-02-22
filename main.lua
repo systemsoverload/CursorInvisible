@@ -2,6 +2,7 @@ TARGET_SPAWN_DELAY = 5
 TARGETS_ON_SCREEN = 0
 MAX_TARGETS = 10
 TARGET_RADIUS = 96
+TIME_BETWEEN_SPAWN = 100
 
 spawnCounter = TARGET_SPAWN_DELAY
 alive = true
@@ -101,18 +102,20 @@ function handleClickOrTouch( xin, yin )
 	local x,y = layer:wndToWorld( xin, yin )
 	local partition = layer:getPartition()
 	local pickedProp = partition:propForPoint(x, y)
-	-- Find the center of the circle
-	local tmpx, tmpy = pickedProp:getLoc()
-	-- Figure out the component vectors from the center of the circle to the click location
-	local vecx, vecy = x-tmpx, y-tmpy
-	-- Find the length of the vector from center to click
-	local incircle = math.sqrt(math.pow(vecx, 2) + math.pow(vecy, 2))
-	print( 'In circle: ', incircle)
-	-- If the length is more than the radius of the target, this click missed
-	if incircle <= TARGET_RADIUS then
-		setState( pickedProp, targetHitState )
-	else
-		pickedProp = nil
+	if pickedProp then
+		-- Find the center of the circle
+		local tmpx, tmpy = pickedProp:getLoc()
+		-- Figure out the component vectors from the center of the circle to the click location
+		local vecx, vecy = x-tmpx, y-tmpy
+		-- Find the length of the vector from center to click
+		local incircle = math.sqrt(math.pow(vecx, 2) + math.pow(vecy, 2)) - 1  -- Image / math isnt perfectly sized
+		print( 'In circle: ', incircle)
+		-- If the length is more than the radius of the target, this click missed
+		if incircle <= TARGET_RADIUS then
+			setState( pickedProp, targetHitState )
+		else
+			pickedProp = nil
+		end
 	end
 
 	--If the mouse click missed all props, game over
@@ -162,17 +165,17 @@ function main ()
 			MOAIProp2D.new()
 			, targetState
 			, math.random(
-				((windowWidth/2) - 96) * -1
-				,((windowWidth/2) - 96)
+				((windowWidth/2) - TARGET_RADIUS) * -1
+				,((windowWidth/2) - TARGET_RADIUS)
 			)
 			, math.random(
-				((windowHeight/2) -96) * -1
-				, (windowHeight / 2) - 96
+				((windowHeight/2) -TARGET_RADIUS) * -1
+				, (windowHeight / 2) - TARGET_RADIUS
 			)
 		)
 
 		--Throttle thread so you dont create a million targets
-		for i = 1, 35 do
+		for i = 1, TIME_BETWEEN_SPAWN do
 			spawnCounter = spawnCounter + 1
 			coroutine.yield()
 		end
