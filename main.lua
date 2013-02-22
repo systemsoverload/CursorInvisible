@@ -1,6 +1,8 @@
 TARGET_SPAWN_DELAY = 5
 TARGETS_ON_SCREEN = 0
 MAX_TARGETS = 10
+TARGET_RADIUS = 96
+TIME_BETWEEN_SPAWN = 100
 
 spawnCounter = TARGET_SPAWN_DELAY
 alive = true
@@ -31,7 +33,7 @@ bholeGfx:setRect ( -20, -20, 20, 20 )
 
 targetGfx = MOAIGfxQuad2D.new ()
 targetGfx:setTexture ( "assets/images/target.png" )
-targetGfx:setRect ( -96, -96, 96, 96 )
+targetGfx:setRect ( -TARGET_RADIUS, -TARGET_RADIUS, TARGET_RADIUS, TARGET_RADIUS )
 
 font =  MOAIFont.new ()
 font:loadFromTTF ("assets/arialbd.ttf", "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,.?! ", 22, 163 )
@@ -96,22 +98,51 @@ function targetHitState( prop )
 
 end
 
+function handleClickOrTouch( xin, yin )
+	local x,y = layer:wndToWorld( xin, yin )
+	local partition = layer:getPartition()
+	local pickedProp = partition:propForPoint(x, y)
+	if pickedProp then
+		-- Find the center of the circle
+		local tmpx, tmpy = pickedProp:getLoc()
+		-- Figure out the component vectors from the center of the circle to the click location
+		local vecx, vecy = x-tmpx, y-tmpy
+		-- Find the length of the vector from center to click
+		local incircle = math.sqrt(math.pow(vecx, 2) + math.pow(vecy, 2)) - 1  -- Image / math isnt perfectly sized
+		print( 'In circle: ', incircle)
+		-- If the length is more than the radius of the target, this click missed
+		if incircle <= TARGET_RADIUS then
+			setState( pickedProp, targetHitState )
+		else
+			pickedProp = nil
+		end
+	end
+
+	--If the mouse click missed all props, game over
+	if pickedProp == nil then
+		alive = false
+	end
+end
+
 function handleMouse( down )
 	if down then
 		local x,y = MOAIInputMgr.device.pointer:getLoc()
-		x, y = layer:wndToWorld ( x, y )
-
-		local partition = layer:getPartition()
-		local pickedProp = partition:propForPoint(x, y)
-		setState( pickedProp, targetHitState )
-
-		--If the mouse click missed all props, game over
-		if pickedProp == nil then
-			alive = false
-		end
+		handleClickOrTouch( x, y )
 	end
 end
-MOAIInputMgr.device.mouseLeft:setCallback(handleMouse)
+
+function handleTouch( eventType, idx, x, y, tapCount )
+	if (tapCount == 1) then
+		handleClickOrTouch( x, y )
+	end
+end
+
+if MOAIInputMgr.device.pointer then
+	MOAIInputMgr.device.mouseLeft:setCallback(handleMouse)
+end
+if MOAIInputMgr.device.touch then
+	MOAIInputMgr.device.touch:setCallback(handleTouch)
+end
 
 function handleKeyboard(key,down)
 	if down==true then
@@ -134,17 +165,17 @@ function main ()
 			MOAIProp2D.new()
 			, targetState
 			, math.random(
-				((windowWidth/2) - 96) * -1
-				,((windowWidth/2) - 96)
+				((windowWidth/2) - TARGET_RADIUS) * -1
+				,((windowWidth/2) - TARGET_RADIUS)
 			)
 			, math.random(
-				((windowHeight/2) -96) * -1
-				, (windowHeight / 2) - 96
+				((windowHeight/2) -TARGET_RADIUS) * -1
+				, (windowHeight / 2) - TARGET_RADIUS
 			)
 		)
 
 		--Throttle thread so you dont create a million targets
-		for i = 1, 35 do
+		for i = 1, TIME_BETWEEN_SPAWN do
 			spawnCounter = spawnCounter + 1
 			coroutine.yield()
 		end
