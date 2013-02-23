@@ -69,6 +69,15 @@ function setState ( prop, state, ... )
 	end
 end
 
+function bholeState( prop, x, y )
+	if alive == true then
+		prop:setDeck ( bholeGfx )
+		prop:setLoc ( x, y )
+		prop.state = bholeState
+		layer:insertProp ( prop )
+	end
+end
+
 function targetState ( prop, x, y )
 
 	if alive == true then
@@ -82,7 +91,13 @@ function targetState ( prop, x, y )
 	-- targets[prop] = true
 
 	function prop:finish ()
-		--Placeholder
+		layer:removeProp(prop)
+		score = score + 1
+		TARGETS_ON_SCREEN = TARGETS_ON_SCREEN - 1
+		gameScoreText:setString( tostring(score) )
+		if prop.bhole then
+			layer:removeProp(prop.bhole)
+		end
 	end
 
 	function prop:main ()
@@ -90,29 +105,30 @@ function targetState ( prop, x, y )
 	end
 end
 
-function targetHitState( prop )
-	layer:removeProp(prop)
-	score = score + 1
-	TARGETS_ON_SCREEN = TARGETS_ON_SCREEN - 1
-	gameScoreText:setString( tostring(score) )
-
-end
-
-function handleClickOrTouch( xin, yin )
-	local x,y = layer:wndToWorld( xin, yin )
+function handleClickOrTouch( eventX, eventY )
+	local eventX, eventY = layer:wndToWorld( eventX, eventY )
 	local partition = layer:getPartition()
-	local pickedProp = partition:propForPoint(x, y)
+	local pickedProp = partition:propForPoint(eventX, eventY)
+	local newBhole = MOAIProp2D.new()
+
+	setState ( newBhole, bholeState, eventX, eventY )
+
 	if pickedProp then
+
 		-- Find the center of the circle
-		local tmpx, tmpy = pickedProp:getLoc()
+		local propCenterX, propCenterY = pickedProp:getLoc()
+
 		-- Figure out the component vectors from the center of the circle to the click location
-		local vecx, vecy = x-tmpx, y-tmpy
+		local vecX = eventX - propCenterX
+		local vecY = eventY - propCenterY
+
 		-- Find the length of the vector from center to click
-		local incircle = math.sqrt(math.pow(vecx, 2) + math.pow(vecy, 2)) - 1  -- Image / math isnt perfectly sized
-		print( 'In circle: ', incircle)
+		local inCircle = math.sqrt(math.pow(vecX, 2) + math.pow(vecY, 2)) - 1  -- Image / math isnt perfectly sized
+
 		-- If the length is more than the radius of the target, this click missed
-		if incircle <= TARGET_RADIUS then
-			setState( pickedProp, targetHitState )
+		if inCircle <= TARGET_RADIUS then
+			pickedProp.bhole = newBhole
+			pickedProp.finish()
 		else
 			pickedProp = nil
 		end
@@ -145,7 +161,7 @@ if MOAIInputMgr.device.touch then
 end
 
 function handleKeyboard(key,down)
-	if down==true then
+	if down == true then
 		if key == 27 then -- 'escape' key
 			os.exit()
 		end
