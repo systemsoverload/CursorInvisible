@@ -2,7 +2,8 @@ TARGET_SPAWN_DELAY = 5
 TARGETS_ON_SCREEN = 0
 MAX_TARGETS = 10
 TARGET_RADIUS = 96
-TIME_BETWEEN_SPAWN = 100
+TIME_BETWEEN_SPAWN = 150
+BHOLE_DECAY_TIME = 30
 
 spawnCounter = TARGET_SPAWN_DELAY
 alive = true
@@ -76,6 +77,19 @@ function bholeState( prop, x, y )
 		prop.state = bholeState
 		layer:insertProp ( prop )
 	end
+
+	function prop:finish()
+		function removeBhole()
+			for i = 1, BHOLE_DECAY_TIME do
+				coroutine.yield()		
+			end
+			layer:removeProp(prop)	
+		end
+		
+		spawnThread = MOAIThread.new ()
+		spawnThread:run ( removeBhole )
+	end
+
 end
 
 function targetState ( prop, x, y )
@@ -96,7 +110,7 @@ function targetState ( prop, x, y )
 		TARGETS_ON_SCREEN = TARGETS_ON_SCREEN - 1
 		gameScoreText:setString( tostring(score) )
 		if prop.bhole then
-			layer:removeProp(prop.bhole)
+			prop.bhole:finish()
 		end
 	end
 
@@ -189,6 +203,10 @@ function main ()
 				, (windowHeight / 2) - TARGET_RADIUS
 			)
 		)
+
+		if TIME_BETWEEN_SPAWN >= 10 then
+			TIME_BETWEEN_SPAWN = TIME_BETWEEN_SPAWN * 0.90
+		end
 
 		--Throttle thread so you dont create a million targets
 		for i = 1, TIME_BETWEEN_SPAWN do
