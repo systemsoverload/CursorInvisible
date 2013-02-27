@@ -3,7 +3,7 @@ TARGETS_ON_SCREEN = 0
 MAX_TARGETS = 10
 TARGET_RADIUS = 96
 TIME_BETWEEN_SPAWN = 150
-BHOLE_DECAY_TIME = 30
+TARGET_DECAY_TIME = 30
 
 spawnCounter = TARGET_SPAWN_DELAY
 alive = true
@@ -30,7 +30,7 @@ MOAIRenderMgr.setRenderTable(layers)
 
 bholeGfx = MOAIGfxQuad2D.new ()
 bholeGfx:setTexture ( "assets/images/bhole.png" )
-bholeGfx:setRect ( -20, -20, 20, 20 )
+bholeGfx:setRect ( -10, -10, 10, 10 )
 
 targetGfx = MOAIGfxQuad2D.new ()
 targetGfx:setTexture ( "assets/images/target.png" )
@@ -80,20 +80,21 @@ function bholeState( prop, x, y )
 
 	function prop:finish()
 		function removeBhole()
-			for i = 1, BHOLE_DECAY_TIME do
-				coroutine.yield()		
+			for i = 1, TARGET_DECAY_TIME do
+				coroutine.yield()
 			end
-			layer:removeProp(prop)	
+
+			layer:removeProp(prop)
 		end
-		
-		spawnThread = MOAIThread.new ()
+
+		local spawnThread = MOAIThread.new ()
 		spawnThread:run ( removeBhole )
 	end
 
 end
 
 function targetState ( prop, x, y )
-
+	prop.type = "target"
 	if alive == true then
 		prop:setDeck ( targetGfx )
 		prop:setLoc ( x, y )
@@ -105,13 +106,26 @@ function targetState ( prop, x, y )
 	-- targets[prop] = true
 
 	function prop:finish ()
-		layer:removeProp(prop)
-		score = score + 1
-		TARGETS_ON_SCREEN = TARGETS_ON_SCREEN - 1
-		gameScoreText:setString( tostring(score) )
-		if prop.bhole then
-			prop.bhole:finish()
+		function removeTarget()
+			score = score + 1
+			if prop.bhole then
+				prop.bhole:finish()
+			end
+
+			for i = 1, TARGET_DECAY_TIME do
+				coroutine.yield()
+			end
+
+			layer:removeProp(prop)
+
+			TARGETS_ON_SCREEN = TARGETS_ON_SCREEN - 1
+			gameScoreText:setString( tostring(score) )
 		end
+
+
+		local spawnThread = MOAIThread.new()
+		spawnThread:run( removeTarget )
+
 	end
 
 	function prop:main ()
@@ -127,8 +141,7 @@ function handleClickOrTouch( eventX, eventY )
 
 	setState ( newBhole, bholeState, eventX, eventY )
 
-	if pickedProp then
-
+	if pickedProp and pickedProp.type == 'target' then
 		-- Find the center of the circle
 		local propCenterX, propCenterY = pickedProp:getLoc()
 
@@ -144,13 +157,22 @@ function handleClickOrTouch( eventX, eventY )
 			pickedProp.bhole = newBhole
 			pickedProp.finish()
 		else
-			pickedProp = nil
+			local pickedProp = partition:propListForPoint(eventX, eventY)
+			if pickedProp and pickedProp.type =='target' then
+				pickedProp.bhole = newBhole
+				pickedProp.finish()
+			else
+				alive = false
+			end
 		end
-	end
-
-	--If the mouse click missed all props, game over
-	if pickedProp == nil then
-		alive = false
+	else
+		local pickedProp = partition:propListForPoint(eventX, eventY)
+		if pickedProp and pickedProp.type =='target' then
+			pickedProp.bhole = newBhole
+			pickedProp.finish()
+		else
+			alive = false
+		end
 	end
 end
 
